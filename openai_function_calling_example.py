@@ -178,6 +178,14 @@ class ToolUseAgent:
         return assistant_message.content
 
 
+USER_INPUTS = [
+    "Hello",
+    "What is 453234.123 * x?",
+    "459323.432",
+    "Now add 4 and 5 and then devide 3 by 6",
+    "What was the first calculation I asked"
+]
+
 def main():
     load_dotenv()
     api_key = os.environ.get("OPENAI_API_KEY")
@@ -189,15 +197,7 @@ def main():
         system_message="You are a helpful assistant that can perform calculations when requested.",
     )
     
-    user_inputs = [
-        "Hello",
-        "What is 453234.123 * x?",
-        "459323.432",
-        "Now add 4 and 5 and then devide 3 by 6",
-        "What was the first calculation I asked"
-    ]
-    
-    for user_input in user_inputs:
+    for user_input in USER_INPUTS:
         print(f"# User: '{user_input}'")
         response = agent.handle_message(user_input)
         print(f"# Agent: {response}")
