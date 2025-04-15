@@ -140,3 +140,56 @@ async def main() -> None:
 
 if __name__ == "__main__":
     asyncio.run(main())
+
+
+"""
+from autogen_core import (
+    AgentId,
+    MessageContext,
+    RoutedAgent,
+    SingleThreadedAgentRuntime,
+    message_handler,
+)
+from autogen_core.models import ChatCompletionClient, SystemMessage, UserMessage
+from autogen_core.tool_agent import ToolAgent, tool_agent_caller_loop
+from autogen_core.tools import FunctionTool, Tool, ToolSchema
+from autogen_ext.models.openai import OpenAIChatCompletionClient
+
+
+class AssistantAgent(RoutedAgent):
+    def __init__(
+        self,
+        model_client: ChatCompletionClient,
+        tool_schema: List[ToolSchema],
+        tool_agent_type: str,
+    ) -> None:
+        super().__init__("Aa helpful assistant")
+        self._system_messages = [
+            SystemMessage(content=(
+                "You are a helpful AI assistant create by Layer6"
+            ))
+        ]
+        self._model_client = model_client
+        self._tool_schema = tool_schema
+        self._tool_agent_id = AgentId(tool_agent_type, self.id.key)
+        self._messages = []
+
+    @message_handler
+    async def handle_message(self, message: Message, ctx: MessageContext) -> Optional[Message]:
+        # Create a session of messages
+        self._messages.append(UserMessage(content=message.content, source="user"))
+
+        messages = await tool_agent_caller_loop(
+            self,
+            tool_agent_id=self._tool_agent_id,
+            model_client=self._model_client,
+            input_messages=self._messages,
+            tool_schema=self._tool_schema,
+            cancellation_token=ctx.cancellation_token,
+        )
+
+        # Return the final response
+        assert isinstance(messages[-1].content, str)
+        return Message(content=messages[-1].content)
+
+"""
