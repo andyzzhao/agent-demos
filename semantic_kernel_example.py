@@ -45,7 +45,9 @@ class CalculatorPlugin:
 USER_INPUTS = [
     "Hello",
     "What is 453234.123 * x?",
-    "459323.432"
+    "459323.432",
+    "Now add 4 and 5 and then devide 3 by 6",
+    "What was the first calculation I asked"
 ]
 
 
@@ -71,7 +73,7 @@ async def main():
     agent = OpenAIAssistantAgent(
         client=client,
         definition=definition,
-        plugins=[CalculatorPlugin()],  # The plugins can be passed in as a list to the constructor
+        plugins=[CalculatorPlugin()], 
     )
 
     thread: AssistantAgentThread = None
