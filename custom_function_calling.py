@@ -2,20 +2,12 @@ import os
 import json
 import openai
 import re
-from typing import Optional, Dict, List, Any, Tuple
+from typing import Optional, Dict, List, Any
+from dotenv import load_dotenv
 
-# Define the calculator tool
 def calculator(a: float, b: float, operator: str) -> str:
     """
     Performs basic arithmetic operations on two numbers.
-    
-    Args:
-        a: The first number
-        b: The second number
-        operator: The arithmetic operator (+, -, *, /)
-        
-    Returns:
-        str: The result of the calculation or an error message
     """
     print(f"Calculator called with: a={a}, b={b}, operator={operator}")
     try:
@@ -59,14 +51,12 @@ class ToolUseAgent:
         api_key: str, 
         model: str = "gpt-4o",
         system_message: str = "You are a helpful assistant that can perform calculations when requested.",
-        max_messages: Optional[int] = None
     ):
         self.client = openai.OpenAI(api_key=api_key)
         self.model = model
         self.messages = []
         self.system_message = self._create_system_message(system_message)
         self.message_count = 0
-        self.max_messages = max_messages
         
         # Add system message
         self.add_message("system", self.system_message)
@@ -100,12 +90,6 @@ class ToolUseAgent:
     def add_message(self, role: str, content: str, name=None, tool_call_id=None):
         """
         Add a message to the conversation history.
-        
-        Args:
-            role: The role of the message sender (user, assistant, system, tool)
-            content: The content of the message
-            name: The name of the tool (only for tool messages)
-            tool_call_id: The ID of the tool call (only for tool messages)
         """
         message = {"role": role, "content": content}
         if name:
@@ -125,7 +109,6 @@ class ToolUseAgent:
             List of tool calls
         """
 
-        print(f"# Content: {content}")
         tool_calls = []
         
         # Regular expression to match tool calls
@@ -136,29 +119,56 @@ class ToolUseAgent:
             tool_name = match.group(1)
             args_str = match.group(2)
 
-            print(f"# Tool name: {tool_name}")
-            print(f"# Args str: {args_str}")
-            
             # Parse arguments
             args = {}
             if args_str.strip():
-                # Simple parsing for demonstration - in a real app, you'd need more robust parsing
-                arg_pairs = [pair.strip() for pair in args_str.split(',')]
-                for pair in arg_pairs:
-                    if '=' in pair:
-                        key, value = pair.split('=', 1)
-                        key = key.strip()
-                        value = value.strip()
-                        
-                        # Convert string values to appropriate types
-                        if value.lower() == 'true':
-                            value = True
-                        elif value.lower() == 'false':
-                            value = False
-                        elif value.replace('.', '', 1).isdigit():
-                            value = float(value)
-                        
-                        args[key] = value
+                # Split by comma but handle quoted strings properly
+                arg_parts = []
+                current_part = ""
+                in_quotes = False
+                
+                for char in args_str:
+                    if char == '"' or char == "'":
+                        in_quotes = not in_quotes
+                        current_part += char
+                    elif char == ',' and not in_quotes:
+                        arg_parts.append(current_part.strip())
+                        current_part = ""
+                    else:
+                        current_part += char
+                
+                if current_part.strip():
+                    arg_parts.append(current_part.strip())
+                
+                # Get parameter names from the tool function
+                if tool_name in tool_functions:
+                    import inspect
+                    sig = inspect.signature(tool_functions[tool_name])
+                    param_names = list(sig.parameters.keys())
+                    
+                    # Map arguments to parameter names
+                    for i, arg_part in enumerate(arg_parts):
+                        if i < len(param_names):
+                            param_name = param_names[i]
+                            # Remove quotes if present
+                            arg_value = arg_part.strip('"\'')
+                            
+                            # Convert to appropriate type based on parameter annotation
+                            param_type = sig.parameters[param_name].annotation
+                            try:
+                                if param_type == float:
+                                    arg_value = float(arg_value)
+                                elif param_type == int:
+                                    arg_value = int(arg_value)
+                                elif param_type == bool:
+                                    arg_value = arg_value.lower() in ('true', '1', 'yes')
+                                # More type conversions as needed
+                            except ValueError:
+                                # If conversion fails, keep as string
+                                pass
+                                
+                            args[param_name] = arg_value
+                            print(f"# Parsed arg: {param_name}={arg_value}")
             
             tool_calls.append({
                 "id": f"call_{len(tool_calls)}",
@@ -168,7 +178,6 @@ class ToolUseAgent:
                     "arguments": json.dumps(args)
                 }
             })
-        print(f"# Tool calls: {tool_calls}")
         return tool_calls
     
     def _remove_tool_calls_from_content(self, content: str) -> str:
@@ -222,13 +231,6 @@ class ToolUseAgent:
         Returns:
             Assistant's response or None if conversation should terminate
         """
-        # Check for termination conditions
-        if "TERMINATE" in user_input:
-            return None
-            
-        # Check message count limit
-        if self.max_messages and self.message_count >= self.max_messages:
-            return None
             
         self.message_count += 1
         
@@ -284,22 +286,17 @@ class ToolUseAgent:
             )
             
             # Extract and add the final response
-            final_message = final_response.choices[0].message
-            final_content = final_message.content or ""
+            final_content = final_response.choices[0].message.content
             self.add_message("assistant", final_content)
             
             return final_content
         
         return clean_content
     
-    def chat(self, user_input: str) -> str:
-        response = self.handle_message(user_input)
-        if response is None:
-            return "Conversation terminated."
-        return response
 
 def main():
     # Get API key from environment variable
+    load_dotenv()
     api_key = os.environ.get("OPENAI_API_KEY")
     if not api_key:
         raise ValueError("Please set the OPENAI_API_KEY environment variable")
@@ -307,8 +304,7 @@ def main():
     # Create the agent with a custom system message and message limit
     agent = ToolUseAgent(
         api_key=api_key,
-        system_message="You are a helpful assistant that can perform calculations when requested. If you see 'TERMINATE', stop the conversation.",
-        max_messages=10
+        system_message="You are a helpful assistant that can perform calculations when requested.",
     )
     
     # Simulate a conversation with the agent
@@ -322,7 +318,7 @@ def main():
     
     for user_input in user_inputs:
         print(f"# User: '{user_input}'")
-        response = agent.chat(user_input)
+        response = agent.handle_message(user_input)
         print(f"# Agent: {response}")
 
 if __name__ == "__main__":

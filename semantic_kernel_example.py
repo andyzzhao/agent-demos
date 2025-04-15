@@ -1,6 +1,7 @@
 import asyncio
 import os
 from typing import Annotated
+from dotenv import load_dotenv
 
 from semantic_kernel.agents import AssistantAgentThread, OpenAIAssistantAgent
 from semantic_kernel.functions import kernel_function
@@ -52,10 +53,10 @@ USER_INPUTS = [
 
 
 async def main():
-    # 1. Create the client using OpenAI API key
+    load_dotenv()
     api_key = os.environ.get("OPENAI_API_KEY")
     if not api_key:
-        raise ValueError("Please set the OPENAI_API_KEY environment variable")
+        raise ValueError("Please set the OPENAI_API_KEY in your .env file")
     
     # 2. Create the assistant on the OpenAI service
     client, model = OpenAIAssistantAgent.setup_resources(

@@ -2,7 +2,7 @@ import os
 import json
 import openai
 from typing import Optional
-
+from dotenv import load_dotenv
 # Define the calculator tool
 def calculator(a: float, b: float, operator: str) -> str:
     """
@@ -179,6 +179,7 @@ class ToolUseAgent:
 
 
 def main():
+    load_dotenv()
     api_key = os.environ.get("OPENAI_API_KEY")
     if not api_key:
         raise ValueError("Please set the OPENAI_API_KEY environment variable")
