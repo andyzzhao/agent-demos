@@ -168,7 +168,7 @@ class ToolUseAgent:
                                 pass
                                 
                             args[param_name] = arg_value
-                            print(f"# Parsed arg: {param_name}={arg_value}")
+                            # print(f"# Parsed arg: {param_name}={arg_value}")
             
             tool_calls.append({
                 "id": f"call_{len(tool_calls)}",
@@ -295,19 +295,16 @@ class ToolUseAgent:
     
 
 def main():
-    # Get API key from environment variable
     load_dotenv()
     api_key = os.environ.get("OPENAI_API_KEY")
     if not api_key:
         raise ValueError("Please set the OPENAI_API_KEY environment variable")
     
-    # Create the agent with a custom system message and message limit
     agent = ToolUseAgent(
         api_key=api_key,
         system_message="You are a helpful assistant that can perform calculations when requested.",
     )
     
-    # Simulate a conversation with the agent
     user_inputs = [
         "Hello",
         "What is 453234.123 * x?",
